@@ -8,27 +8,36 @@ import 'package:shimmer/shimmer.dart';
 // import 'package:wheather_app/view/bottom_navbar.dart';
 
 class HomeScreenUi extends StatefulWidget {
-  HomeScreenUi({super.key});
+  const HomeScreenUi({super.key});
 
   @override
   State<HomeScreenUi> createState() => _HomeScreenUiState();
 }
 
 class _HomeScreenUiState extends State<HomeScreenUi> {
-  ScrollController _scrollController = ScrollController();
-  double _scrollThreshold = 140;
-  HomeController homeController = Get.put(HomeController());
+  final ScrollController _scrollController = ScrollController();
+  static const double _scrollThreshold = 140;
+  final HomeController homeController = Get.put(HomeController());
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     _scrollController.addListener(() {
       if (!_scrollController.hasClients) return;
       if (_scrollController.position.extentAfter < _scrollThreshold &&
-          homeController.hasNext) {
+          homeController.hasNext &&
+          !homeController.isCitiesLoading) {
         homeController.getCities();
       }
     });
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -37,6 +46,40 @@ class _HomeScreenUiState extends State<HomeScreenUi> {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            heroTag: 'scrollToTop',
+            mini: true,
+            tooltip: 'Scroll to top',
+            onPressed: () {
+              if (!_scrollController.hasClients) return;
+              _scrollController.animateTo(
+                0,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.bounceInOut,
+              );
+            },
+            child: const Icon(Icons.arrow_upward),
+          ),
+          const SizedBox(height: 8),
+          FloatingActionButton(
+            heroTag: 'scrollToBottom',
+            mini: true,
+            tooltip: 'Scroll to bottom',
+            onPressed: () {
+              if (!_scrollController.hasClients) return;
+              _scrollController.animateTo(
+                _scrollController.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            },
+            child: const Icon(Icons.arrow_downward),
+          ),
+        ],
+      ),
       backgroundColor: AppColors.homeScreenBgColor,
       body: SafeArea(
         child: Padding(
@@ -54,7 +97,7 @@ class _HomeScreenUiState extends State<HomeScreenUi> {
                   children: [
                     RichText(
                       text: TextSpan(
-                        text: "Good Evening ",
+                        text: "${homeController.greeting} ",
                         style: GoogleFonts.poppins(
                           color: AppColors.lightThemeSecondaryText,
                           fontSize: screenWidth * 0.034,
@@ -111,6 +154,8 @@ class _HomeScreenUiState extends State<HomeScreenUi> {
                           ),
                         )
                       : TextField(
+                          controller: _searchController,
+                          onChanged: homeController.searchCities,
                           decoration: InputDecoration(
                             hintText: "Search Cities or Countries ...",
                             hintStyle: GoogleFonts.poppins(
@@ -120,7 +165,10 @@ class _HomeScreenUiState extends State<HomeScreenUi> {
                             ),
                             prefixIcon: const Icon(Icons.search_rounded),
                             suffixIcon: IconButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                _searchController.clear();
+                                homeController.searchCities('');
+                              },
                               icon: Icon(
                                 Icons.cancel,
                                 color: AppColors.lightThemeSecondaryText,
@@ -189,7 +237,10 @@ class _HomeScreenUiState extends State<HomeScreenUi> {
                               index++
                             )
                               GestureDetector(
-                                onTap: () => homeController.regionTap(index),
+                                onTap: () {
+                                  homeController.regionTap(index);
+                                },
+
                                 child: Container(
                                   padding: EdgeInsets.symmetric(
                                     horizontal: screenWidth * 0.04,
@@ -219,6 +270,7 @@ class _HomeScreenUiState extends State<HomeScreenUi> {
                                   ),
                                   child: Text(
                                     homeController.continentList[index],
+
                                     style: TextStyle(
                                       color:
                                           index ==
@@ -285,12 +337,14 @@ class _HomeScreenUiState extends State<HomeScreenUi> {
                           ),
                           TextButton(
                             onPressed: () {},
-                            child: Text(
-                              "23 Results",
-                              style: GoogleFonts.poppins(
-                                color: AppColors.lightThemeSecondaryText,
-                                fontSize: screenWidth * 0.035,
-                                fontWeight: FontWeight.bold,
+                            child: GetBuilder<HomeController>(
+                              builder: (c) => Text(
+                                "${c.displayedCityCount} Results",
+                                style: GoogleFonts.poppins(
+                                  color: AppColors.lightThemeSecondaryText,
+                                  fontSize: screenWidth * 0.035,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
@@ -325,33 +379,25 @@ class _HomeScreenUiState extends State<HomeScreenUi> {
                           )
                         : ListView.builder(
                             controller: _scrollController,
-                            itemCount: c.cities.length + (c.isCitiesLoading ? 1 : 0),
+                            itemCount:
+                                c.cities.length + (c.isCitiesLoading ? 1 : 0),
                             itemBuilder: (context, index) {
                               // Pagination Loading
-                              if (index == c.cities.length && c.isCitiesLoading) {
-                                return GestureDetector(
-                                  onTap: c.isCitiesLoading
-                                      ? null
-                                      : () {
-                                          c.getCities();
-                                        },
-                                  child: c.isCitiesLoading
-                                      ? Shimmer.fromColors(
-                                          baseColor: Colors.grey.shade300,
-                                          highlightColor: Colors.grey.shade100,
-                                          child: Container(
-                                            height: screenHeight * 0.06,
-                                            margin: EdgeInsets.only(
-                                              bottom: screenHeight * 0.01,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius:
-                                                  BorderRadius.circular(14),
-                                            ),
-                                          ),
-                                        )
-                                      : null,
+                              if (index == c.cities.length &&
+                                  c.isCitiesLoading) {
+                                return Shimmer.fromColors(
+                                  baseColor: Colors.grey.shade300,
+                                  highlightColor: Colors.grey.shade100,
+                                  child: Container(
+                                    height: screenHeight * 0.06,
+                                    margin: EdgeInsets.only(
+                                      bottom: screenHeight * 0.01,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
                                 );
                               }
 

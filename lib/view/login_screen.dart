@@ -23,9 +23,9 @@ class _LoginScreenUiState extends State<LoginScreenUi> {
   AuthController authController = Get.find<AuthController>();
 
   TextEditingController emailText = TextEditingController(
-    text: "demo@nimbus.app",
+   
   );
-  TextEditingController passText = TextEditingController(text: "demo1234");
+  TextEditingController passText = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -191,9 +191,8 @@ class _LoginScreenUiState extends State<LoginScreenUi> {
                 ),
               ),
               SizedBox(height: screenheight * 0.06),
-              GetBuilder<AuthController>(
-                builder: (c) {
-                  return SizedBox(
+              Obx(() {
+                return SizedBox(
                     width: double.infinity,
                     height: screenheight * 0.08,
                     child: ElevatedButton(
@@ -211,7 +210,7 @@ class _LoginScreenUiState extends State<LoginScreenUi> {
                             snackPosition: SnackPosition.BOTTOM,
                           );
                         } else {
-                          authController.Login(
+                          authController.login(
                             email: emailText.text,
                             pass: passText.text,
                           );
@@ -229,7 +228,7 @@ class _LoginScreenUiState extends State<LoginScreenUi> {
                             ),
                     ),
                   );
-                },
+              },
               ),
 
               SizedBox(height: screenheight * 0.14),

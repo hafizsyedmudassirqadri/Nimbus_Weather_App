@@ -44,6 +44,7 @@ class ApiController {
     required String url,
 
     bool isToken = false,
+     
     Map<String, String>? queryParams,
   }) async {
     Map<String, String> myHeader = {};

@@ -1,16 +1,12 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:wheather_app/constants/api_constants.dart';
 import 'package:wheather_app/constants/app_colors.dart';
-import 'package:wheather_app/controller/api_controller.dart';
 import 'package:wheather_app/controller/auth_controller.dart';
 import 'package:wheather_app/view/login_screen.dart';
 
 class SignupScreenUi extends StatefulWidget {
-  const new({super.key});
+  const SignupScreenUi({super.key});
 
   @override
   State<SignupScreenUi> createState() => _SignupScreenUiState();
@@ -18,15 +14,19 @@ class SignupScreenUi extends StatefulWidget {
 
 class _SignupScreenUiState extends State<SignupScreenUi> {
 
-    AuthController authController = Get.find<AuthController>();
+  final AuthController authController = Get.find<AuthController>();
 
-  TextEditingController fullNameText = TextEditingController();
-  TextEditingController emailText = TextEditingController();
-  TextEditingController passText = TextEditingController();
-  bool isLoading = false;
-  bool isProtected = true;
+  final TextEditingController fullNameText = TextEditingController();
+  final TextEditingController emailText = TextEditingController();
+  final TextEditingController passText = TextEditingController();
 
-  
+  @override
+  void dispose() {
+    fullNameText.dispose();
+    emailText.dispose();
+    passText.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -102,7 +102,7 @@ class _SignupScreenUiState extends State<SignupScreenUi> {
               SizedBox(height: screenheight * 0.007),
               TextField(
                 controller: fullNameText,
-                keyboardType: TextInputType.emailAddress,
+                keyboardType: TextInputType.name,
                 enableSuggestions: true,
                 textInputAction: TextInputAction.next,
 
@@ -249,7 +249,9 @@ class _SignupScreenUiState extends State<SignupScreenUi> {
                         backgroundColor: AppColors.textButton,
                       ),
                       onPressed: () {
-                        if (emailText.text.isEmpty && passText.text.isEmpty) {
+                        if (fullNameText.text.trim().isEmpty ||
+                            emailText.text.trim().isEmpty ||
+                            passText.text.isEmpty) {
                           Get.snackbar(
                             "Error",
                             "Please fill in all fields.",

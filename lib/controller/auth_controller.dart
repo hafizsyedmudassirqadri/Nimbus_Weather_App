@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wheather_app/constants/api_constants.dart';
 import 'package:wheather_app/controller/api_controller.dart';
 import 'package:wheather_app/view/bottom_navbar.dart';
@@ -16,7 +17,7 @@ class AuthController extends GetxController {
     
   }
 
-  Future<void> Login({required String email, required String pass}) async {
+  Future<void> login({required String email, required String pass}) async {
     isLoading.value = true;
 
     
@@ -34,9 +35,14 @@ class AuthController extends GetxController {
     
       var loginResponse = jsonDecode(response.$2);
       String token = loginResponse["token"];
-      ApiController().saveToken(token: token);
+      await ApiController().saveToken(token: token);
+      final name = loginResponse["user"]?["name"]?.toString().trim();
+      if (name != null && name.isNotEmpty) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_name', name);
+      }
       Get.snackbar(
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         colorText: Colors.greenAccent,
         "Login Succesfull",
         loginResponse["user"]["name"] ?? "You have successfully logged in.",
@@ -46,7 +52,7 @@ class AuthController extends GetxController {
       var loginResponse = jsonDecode(response.$2);
       var loginError = loginResponse['error']['message'];
       Get.snackbar(
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         colorText: Colors.redAccent,
         "Login Failed",
         loginError ?? "An error occurred during login.",
@@ -63,7 +69,7 @@ Future<void> sigupAuth({required String email, required String pass, required St
   
    
 
-    var myBody = {"email": email, "password": pass, "name": name};
+    var myBody = {"email": email, "password": pass, "name": name.trim()};
     var response = await ApiController().post(
       url: ApiConstants.registerApi,
       body: myBody,
@@ -76,7 +82,14 @@ Future<void> sigupAuth({required String email, required String pass, required St
      
       var registerResponse = jsonDecode(response.$2);
       String token = registerResponse["token"];
-      ApiController().saveToken(token: token);
+      await ApiController().saveToken(token: token);
+      final registeredName =
+          registerResponse["user"]?["name"]?.toString().trim();
+      final savedName = (registeredName == null || registeredName.isEmpty)
+          ? name.trim()
+          : registeredName;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_name', savedName);
       Get.snackbar(
         snackPosition: SnackPosition.BOTTOM,
         colorText: Colors.greenAccent,
@@ -123,6 +136,14 @@ Future<void> sigupAuth({required String email, required String pass, required St
       isToken: true,
     );
     if (response.$1 == 200 || response.$1 == 201) {
+      try {
+        final profile = jsonDecode(response.$2);
+        final name = profile["user"]?["name"]?.toString().trim();
+        if (name != null && name.isNotEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_name', name);
+        }
+      } catch (_) {}
       Get.offAll( () => BottomNavigation());
     }
     else{
